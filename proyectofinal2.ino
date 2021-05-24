@@ -25,7 +25,7 @@ const unsigned int BAUD_RATE = 9600;
 const float luzDia = 0.90;
 int ledDia = HIGH;
 boolean llave = false;
-boolean llaveAnterior=false;
+boolean llaveAnterior = false;
 // Angulos) en los que se posicionara el servo
 const int angulos[] = {0, 90};
 
@@ -73,61 +73,67 @@ void loop() {
     // Si no habia movimiento anteriormente
     Serial.println("MOV");
     if (estadoAntPir == LOW) {
-      
+
       // Hay movimiento
       estadoAntPir = HIGH;
     }
     cambiarEstadoLlave(false);
     delay(5000);
     digitalWrite(PIN_LED_PERSONA, LOW);
+    Serial.println("MOVOFF");
   } else {
     float valor = 0;
     // Lee el nivel de luz de la fotoresistencia
-    if (millis() - lapsoAnterior > 250 ) {
-      float nivelLuz = analogRead(PIN_FOTORES);
-      // Convierte el nivel de luz a un valor flotante en
-      // el rango 0 a 5.0 V.
-      if (autoLuz) {
-        valor = nivelLuz * (5.0 / 1023.0);
-        // Envia el valor al puerto serie
-        //Serial.println(valor);
-        //delay(PAUSA);
-        //Serial.println(valor);
-        if (valor >= luzDia) {
-          digitalWrite(PIN_LED, LOW);
-          Serial.println("LOW");
-        } else {
-          digitalWrite(PIN_LED, HIGH);
-          Serial.println("HIGH");
-        }
-      }
-      if (autoRegado) {
-        int humedad = analogRead(PIN_SENSOR);
-        Serial.println(humedad);
-        if (humedad > 500) {
-          cambiarEstadoLlave(true);
-        } else {
-          cambiarEstadoLlave(false);
-        }
+    float nivelLuz = analogRead(PIN_FOTORES);
+    // Convierte el nivel de luz a un valor flotante en
+    // el rango 0 a 5.0 V.
+    if (autoLuz) {
+      valor = nivelLuz * (5.0 / 1023.0);
+      // Envia el valor al puerto serie
+      //Serial.println(valor);
+      //delay(PAUSA);
+      //Serial.println(valor);
+      if (valor >= luzDia) {
+        digitalWrite(PIN_LED, LOW);
+        Serial.println("LOW");
+      } else {
+        digitalWrite(PIN_LED, HIGH);
+        Serial.println("HIGH");
       }
     }
+    if (autoRegado) {
+      int humedad = analogRead(PIN_SENSOR);
+      Serial.println(humedad);
+      if (humedad > 500) {
+        cambiarEstadoLlave(true);
+      } else {
+        cambiarEstadoLlave(false);
+      }
+    }
+    lapsoAnterior = 0;
+
     if (llave) {
+      Serial.println("REGANDO");
       for (int i = 0; i < pasosRevolucion; i++) {
         // Gira un paso en la direccion horaria
         pasoHorario();
         delayMicroseconds(velocidad);
       }
+    }else{
+      Serial.println("REGADO");
     }
   }
   if (Serial.available() > 0) {
-    int n = Serial.readBytesUntil('\n', comando, 5);
+    int n = Serial.readBytesUntil('\n', comando, 10);
     comando[n] = '\0';
     if (!strcmp(comando, "LON")) {
       autoLuz = false;
       digitalWrite(PIN_LED, HIGH);
+      Serial.println("HIGH");
     } else if (!strcmp(comando, "LOFF")) {
       autoLuz = false;
       digitalWrite(PIN_LED, LOW);
+      Serial.println("LOW");
     } else if (!strcmp(comando, "LAU")) {
       autoLuz = true;
     } else if (!strcmp(comando, "RON")) {
