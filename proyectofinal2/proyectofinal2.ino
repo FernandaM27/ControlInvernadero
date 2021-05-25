@@ -16,7 +16,9 @@ const unsigned int PIN_SERVO = 6;
 
 //pausas
 const int PAUSA = 500;
-int lapsoAnterior = 0;
+const long PERIODO = 5000;
+unsigned long lapsoAnterior = 0;
+
 
 //comunicación
 const unsigned int BAUD_RATE = 9600;
@@ -48,6 +50,11 @@ int estadoAntPir = LOW;
 boolean autoLuz = true;
 boolean autoRegado = true;
 boolean autoAlarma = true;
+
+boolean luzActual = false;
+boolean luzAnterior = false;
+
+boolean regado = false;
 
 void setup() {
   Serial.begin(BAUD_RATE);
@@ -89,38 +96,37 @@ void loop() {
     // el rango 0 a 5.0 V.
     if (autoLuz) {
       valor = nivelLuz * (5.0 / 1023.0);
-      // Envia el valor al puerto serie
-      //Serial.println(valor);
-      //delay(PAUSA);
-      //Serial.println(valor);
       if (valor >= luzDia) {
-        digitalWrite(PIN_LED, LOW);
-        Serial.println("LOW");
+        luzActual = true;
       } else {
-        digitalWrite(PIN_LED, HIGH);
-        Serial.println("HIGH");
+        luzActual = false;
+      }
+      if (luzActual != luzAnterior) {
+        cambiaEstadoLuz();
       }
     }
+    int humedad = analogRead(PIN_SENSOR);
     if (autoRegado) {
-      int humedad = analogRead(PIN_SENSOR);
-      Serial.println(humedad);
       if (humedad > 500) {
         cambiarEstadoLlave(true);
       } else {
         cambiarEstadoLlave(false);
       }
     }
-    lapsoAnterior = 0;
-
     if (llave) {
+      Serial.println(humedad);
       Serial.println("REGANDO");
       for (int i = 0; i < pasosRevolucion; i++) {
         // Gira un paso en la direccion horaria
         pasoHorario();
         delayMicroseconds(velocidad);
       }
-    }else{
-      Serial.println("REGADO");
+    } else {
+      long lapsoActual = millis();
+      if (lapsoActual - lapsoAnterior >= PERIODO) {
+        Serial.println(humedad);
+        lapsoAnterior = lapsoActual;
+      }
     }
   }
   if (Serial.available() > 0) {
@@ -136,18 +142,25 @@ void loop() {
       Serial.println("LOW");
     } else if (!strcmp(comando, "LAU")) {
       autoLuz = true;
+      luzActual=false;
+      luzAnterior=false;
+      digitalWrite(PIN_LED, LOW);
     } else if (!strcmp(comando, "RON")) {
       autoRegado = false;
       cambiarEstadoLlave(true);
       Serial.println("RON");
       llave = true;
+      lapsoAnterior = millis();
     } else if (!strcmp(comando, "ROFF")) {
       autoRegado = false;
       cambiarEstadoLlave(false);
       Serial.println("ROFF");
       llave = false;
+      lapsoAnterior = millis();
     } else if (!strcmp(comando, "RAU")) {
       autoRegado = true;
+      llave = false;
+      lapsoAnterior = millis();
     } else if (!strcmp(comando, "AON")) {
       autoAlarma = true;
       Serial.println("AON");
@@ -156,6 +169,17 @@ void loop() {
       Serial.println("AOFF");
     }
   }
+}
+
+void cambiaEstadoLuz() {
+  if (luzActual) {
+    digitalWrite(PIN_LED, LOW);
+    Serial.println("LOW");
+  } else {
+    digitalWrite(PIN_LED, HIGH);
+    Serial.println("HIGH");
+  }
+  luzAnterior = luzActual;
 }
 
 /*
