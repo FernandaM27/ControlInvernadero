@@ -206,6 +206,11 @@ void energiza(int paso) {
 void cambiarEstadoLlave(bool estado) {
   if (llave != estado && autoRegado) {
     llave = estado;
+    if(llave){
+      Serial.println("RON");
+    }else{
+      Serial.println("ROFF");
+    }
   }
   if (estado) {
     servo.write(angulos[0]);
